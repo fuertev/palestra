@@ -12,7 +12,7 @@
 
   function newState(program) {
     return {
-      v: 1,
+      v: 2,
       program: JSON.parse(JSON.stringify(program)),
       exState: {},   // exId -> { w: peso di lavoro, fails: fallimenti consecutivi }
       ramp: 1,       // fattore di carico per il rientro graduale

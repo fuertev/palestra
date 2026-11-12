@@ -1,5 +1,5 @@
 /* Service worker: tutto in cache per l'uso offline. Cambia VERSION a ogni aggiornamento. */
-const VERSION = 'palestra-v1';
+const VERSION = 'palestra-v2';
 const FILES = [
   './',
   'index.html',
@@ -70,6 +70,12 @@ const FILES = [
   'img/Triceps_Pushdown/1.jpg',
   'img/Wide-Grip_Lat_Pulldown/0.jpg',
   'img/Wide-Grip_Lat_Pulldown/1.jpg',
+  'img/Stiff-Legged_Dumbbell_Deadlift/0.jpg',
+  'img/Stiff-Legged_Dumbbell_Deadlift/1.jpg',
+  'img/V-Bar_Pulldown/0.jpg',
+  'img/V-Bar_Pulldown/1.jpg',
+  'img/One-Arm_Dumbbell_Row/0.jpg',
+  'img/One-Arm_Dumbbell_Row/1.jpg',
 ];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

@@ -665,6 +665,17 @@
       await loadPhotos();
     } catch (e) { console.warn(e); }
     if (!S || !S.program) S = L.newState(D.DEFAULT_PROGRAM);
+    // Versione 2 della scheda: sostituisce gli esercizi cambiati anche nei dati già salvati
+    if ((S.v || 1) < 2 && !S.current) {
+      for (const ses of S.program.sessions) {
+        ses.exercises = ses.exercises.map(e => {
+          const n = D.REPLACE_V2[e.id];
+          return n && !L.findExercise(S, n.id) ? JSON.parse(JSON.stringify(n)) : e;
+        });
+        if (ses.id === 'B' && ses.name === 'Tirata + stacco') ses.name = 'Tirata + stacco manubri';
+      }
+      S.v = 2; save();
+    }
     render(); tick();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
   })();

@@ -29,13 +29,25 @@
     ['Side_Lateral_Raise', 'Alzate laterali'],
     ['Dumbbell_Bench_Press', 'Panca piana manubri'],
     ['Hanging_Leg_Raise', 'Leg raise alla sbarra'],
-    ['Dead_Bug', 'Dead bug']
+    ['Dead_Bug', 'Dead bug'],
+    ['Stiff-Legged_Dumbbell_Deadlift', 'Stacco rumeno manubri'],
+    ['V-Bar_Pulldown', 'Lat machine presa neutra'],
+    ['One-Arm_Dumbbell_Row', 'Rematore manubrio su panca']
   ].map(([id, label]) => ({ id, label }));
 
   // kind: main = fondamentale, sec = secondario, acc = complementare
   // mode: weight (kg x ripetizioni) | time (secondi, senza peso)
   const ex = (id, name, img, kind, sets, min, max, rest, inc, extra = {}) =>
     Object.assign({ id, name, img, kind, sets, min, max, rest, inc, mode: 'weight', legs: false, perSide: false }, extra);
+
+  // Esercizi introdotti con la versione 2 della scheda (sostituiscono stacco bilanciere, trazioni, rematore bilanciere, hip thrust)
+  const NEW = {
+    rdlman: ex('rdlman', 'Stacco rumeno manubri', 'Stiff-Legged_Dumbbell_Deadlift', 'sec', 4, 8, 10, 120, 2, { legs: true }),
+    latneutra: ex('latneutra', 'Lat machine presa neutra', 'V-Bar_Pulldown', 'sec', 4, 8, 10, 120, 2.5),
+    remapanca: ex('remapanca', 'Rematore manubrio su panca piana', 'One-Arm_Dumbbell_Row', 'sec', 3, 8, 10, 90, 2, { perSide: true }),
+    legcurl: ex('legcurl', 'Leg curl', 'Lying_Leg_Curls', 'sec', 3, 10, 12, 90, 2.5, { legs: true })
+  };
+  const REPLACE_V2 = { rdl: NEW.rdlman, trazioni: NEW.latneutra, rematore: NEW.remapanca, hipthrust: NEW.legcurl };
 
   const DEFAULT_PROGRAM = {
     block: 'base',
@@ -52,11 +64,11 @@
         ]
       },
       {
-        id: 'B', name: 'Tirata + stacco', legsHeavy: false,
+        id: 'B', name: 'Tirata + stacco manubri', legsHeavy: false,
         exercises: [
-          ex('rdl', 'Stacco rumeno', 'Romanian_Deadlift', 'main', 4, 6, 8, 150, 2.5, { legs: true }),
-          ex('trazioni', 'Trazioni (zavorra)', 'Pullups', 'main', 4, 6, 8, 120, 2.5),
-          ex('rematore', 'Rematore bilanciere', 'Bent_Over_Barbell_Row', 'sec', 3, 8, 10, 120, 2.5),
+          NEW.rdlman,
+          NEW.latneutra,
+          NEW.remapanca,
           ex('inclinata', 'Panca inclinata manubri', 'Incline_Dumbbell_Press', 'sec', 3, 8, 10, 90, 2),
           ex('curl', 'Curl manubri', 'Dumbbell_Bicep_Curl', 'acc', 3, 10, 12, 60, 2),
           ex('pallof', 'Pallof press', 'Pallof_Press', 'acc', 3, 10, 12, 60, 2.5, { perSide: true })
@@ -66,7 +78,7 @@
         id: 'C', name: 'Unilaterale + complementari', legsHeavy: true,
         exercises: [
           ex('bulgari', 'Affondi bulgari', 'Split_Squat_with_Dumbbells', 'sec', 3, 8, 10, 90, 2, { legs: true, perSide: true }),
-          ex('hipthrust', 'Hip thrust', 'Barbell_Hip_Thrust', 'sec', 3, 8, 10, 90, 2.5, { legs: true }),
+          NEW.legcurl,
           ex('latstretta', 'Lat machine presa stretta', 'Close-Grip_Front_Lat_Pulldown', 'acc', 3, 10, 12, 90, 2.5),
           ex('chestpress', 'Chest press', 'Leverage_Chest_Press', 'acc', 3, 10, 12, 90, 2.5),
           ex('facepull', 'Face pull', 'Face_Pull', 'acc', 3, 12, 15, 60, 2.5),
@@ -96,6 +108,6 @@
     }
   };
 
-  root.GymData = { IMG_LIB, DEFAULT_PROGRAM, BLOCKS };
+  root.GymData = { IMG_LIB, DEFAULT_PROGRAM, BLOCKS, REPLACE_V2 };
   if (typeof module !== 'undefined') module.exports = root.GymData;
 })(typeof window !== 'undefined' ? window : globalThis);
