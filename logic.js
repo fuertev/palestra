@@ -12,7 +12,7 @@
 
   function newState(program) {
     return {
-      v: 2,
+      v: 3,
       program: JSON.parse(JSON.stringify(program)),
       exState: {},   // exId -> { w: peso di lavoro, fails: fallimenti consecutivi }
       ramp: 1,       // fattore di carico per il rientro graduale
@@ -90,7 +90,7 @@
         w = Math.max(0, roundTo(st.w * factor, e.inc));
         if (st.fails === 1) notes.push('Ultima volta sotto il minimo: stesso carico, riprova.');
       }
-      return { exId: e.id, sets, w, min: e.min, max: e.max, rest: e.rest, notes };
+      return { exId: e.id, sets, w, min: e.min, max: e.max, rest: e.rest, notes, optional: !!e.optional };
     });
     return { factor, gap, note, items };
   }
@@ -105,7 +105,8 @@
         const target = e.mode === 'time' ? e.min : e.max;
         return Object.assign({}, it, {
           sets: Array.from({ length: it.sets }, () => ({ w: it.w, r: target, done: false })),
-          planned: it.sets
+          planned: it.sets,
+          on: !it.optional
         });
       }),
       timer: null
@@ -123,6 +124,7 @@
     for (const it of cur.items) {
       const e = findExercise(s, it.exId);
       if (!e) continue;
+      if (it.optional && !it.on) continue; // opzionale non fatto: nessun effetto
       const done = it.sets.filter(x => x.done && x.r > 0);
       entries.push({ exId: e.id, name: e.name, sets: done.map(x => ({ w: x.w, r: x.r })) });
       if (!done.length || e.mode !== 'weight') {

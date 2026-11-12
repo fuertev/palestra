@@ -32,7 +32,14 @@
     ['Dead_Bug', 'Dead bug'],
     ['Stiff-Legged_Dumbbell_Deadlift', 'Stacco rumeno manubri'],
     ['V-Bar_Pulldown', 'Lat machine presa neutra'],
-    ['One-Arm_Dumbbell_Row', 'Rematore manubrio su panca']
+    ['One-Arm_Dumbbell_Row', 'Rematore manubrio su panca'],
+    ['Hack_Squat', 'Hack squat'],
+    ['Hyperextensions_Back_Extensions', 'Iperestensioni 45°'],
+    ['Pull_Through', 'Pull-through ai cavi'],
+    ['Thigh_Abductor', 'Abduttori alla macchina'],
+    ['One-Legged_Cable_Kickback', 'Kickback ai cavi'],
+    ['Seated_Calf_Raise', 'Calf raise seduto'],
+    ['Cable_Seated_Lateral_Raise', 'Alzate laterali ai cavi']
   ].map(([id, label]) => ({ id, label }));
 
   // kind: main = fondamentale, sec = secondario, acc = complementare
@@ -49,18 +56,42 @@
   };
   const REPLACE_V2 = { rdl: NEW.rdlman, trazioni: NEW.latneutra, rematore: NEW.remapanca, hipthrust: NEW.legcurl };
 
+  // Versione 3: squat e panca senza bilanciere, più glutei, esercizi opzionali ("se ho tempo")
+  const opt = { optional: true };
+  const V3 = {
+    legpress: ex('legpress', 'Leg press', 'Leg_Press', 'main', 4, 8, 10, 150, 5, { legs: true }),
+    pancaman: ex('pancaman', 'Panca piana manubri', 'Dumbbell_Bench_Press', 'main', 4, 6, 8, 150, 2),
+    iper: ex('iper', 'Iperestensioni 45° (glutei)', 'Hyperextensions_Back_Extensions', 'sec', 3, 10, 12, 90, 2.5, { legs: true }),
+    alzate: ex('alzate', 'Alzate laterali', 'Side_Lateral_Raise', 'acc', 3, 12, 15, 60, 1, opt),
+    calf: ex('calf', 'Calf raise in piedi', 'Standing_Calf_Raises', 'acc', 3, 12, 15, 60, 5, opt),
+    pullthrough: ex('pullthrough', 'Pull-through ai cavi (glutei)', 'Pull_Through', 'acc', 3, 12, 15, 60, 2.5, Object.assign({ legs: true }, opt)),
+    abduttori: ex('abduttori', 'Abduttori alla macchina (glutei)', 'Thigh_Abductor', 'acc', 3, 15, 20, 60, 5, opt),
+    calfseduto: ex('calfseduto', 'Calf raise seduto', 'Seated_Calf_Raise', 'acc', 3, 12, 15, 60, 5, opt),
+    alzatecavi: ex('alzatecavi', 'Alzate laterali ai cavi', 'Cable_Seated_Lateral_Raise', 'acc', 3, 12, 15, 60, 1, Object.assign({ perSide: true }, opt))
+  };
+  // Istruzioni per aggiornare una scheda già salvata alla versione 3
+  const MIGRATE_V3 = {
+    replace: { squat: V3.legpress, panca: V3.pancaman },
+    insertAfter: { C: [['legcurl', V3.iper]] },
+    append: { A: [V3.alzate, V3.calf], B: [V3.pullthrough, V3.abduttori], C: [V3.calfseduto, V3.alzatecavi] },
+    makeOptional: ['pushdown'],
+    rename: { A: ['Spinta + squat', 'Spinta + gambe'] }
+  };
+
   const DEFAULT_PROGRAM = {
     block: 'base',
     sessions: [
       {
-        id: 'A', name: 'Spinta + squat', legsHeavy: true,
+        id: 'A', name: 'Spinta + gambe', legsHeavy: true,
         exercises: [
-          ex('squat', 'Squat', 'Barbell_Squat', 'main', 4, 6, 8, 150, 2.5, { legs: true }),
-          ex('panca', 'Panca piana', 'Barbell_Bench_Press_-_Medium_Grip', 'main', 4, 6, 8, 150, 2.5),
+          V3.legpress,
+          V3.pancaman,
           ex('lento', 'Lento manubri', 'Seated_Dumbbell_Press', 'sec', 3, 8, 10, 90, 2),
           ex('pulley', 'Pulley basso', 'Seated_Cable_Rows', 'acc', 3, 10, 12, 90, 2.5),
           ex('croci', 'Croci ai cavi', 'Cable_Crossover', 'acc', 3, 10, 12, 60, 2.5),
-          ex('plank', 'Plank', 'Plank', 'acc', 3, 45, 60, 60, 0, { mode: 'time' })
+          ex('plank', 'Plank', 'Plank', 'acc', 3, 45, 60, 60, 0, { mode: 'time' }),
+          V3.alzate,
+          V3.calf
         ]
       },
       {
@@ -71,7 +102,9 @@
           NEW.remapanca,
           ex('inclinata', 'Panca inclinata manubri', 'Incline_Dumbbell_Press', 'sec', 3, 8, 10, 90, 2),
           ex('curl', 'Curl manubri', 'Dumbbell_Bicep_Curl', 'acc', 3, 10, 12, 60, 2),
-          ex('pallof', 'Pallof press', 'Pallof_Press', 'acc', 3, 10, 12, 60, 2.5, { perSide: true })
+          ex('pallof', 'Pallof press', 'Pallof_Press', 'acc', 3, 10, 12, 60, 2.5, { perSide: true }),
+          V3.pullthrough,
+          V3.abduttori
         ]
       },
       {
@@ -79,10 +112,13 @@
         exercises: [
           ex('bulgari', 'Affondi bulgari', 'Split_Squat_with_Dumbbells', 'sec', 3, 8, 10, 90, 2, { legs: true, perSide: true }),
           NEW.legcurl,
+          V3.iper,
           ex('latstretta', 'Lat machine presa stretta', 'Close-Grip_Front_Lat_Pulldown', 'acc', 3, 10, 12, 90, 2.5),
           ex('chestpress', 'Chest press', 'Leverage_Chest_Press', 'acc', 3, 10, 12, 90, 2.5),
           ex('facepull', 'Face pull', 'Face_Pull', 'acc', 3, 12, 15, 60, 2.5),
-          ex('pushdown', 'Pushdown tricipiti', 'Triceps_Pushdown', 'acc', 3, 10, 12, 60, 2.5)
+          ex('pushdown', 'Pushdown tricipiti', 'Triceps_Pushdown', 'acc', 3, 10, 12, 60, 2.5, opt),
+          V3.calfseduto,
+          V3.alzatecavi
         ]
       }
     ]
@@ -108,6 +144,6 @@
     }
   };
 
-  root.GymData = { IMG_LIB, DEFAULT_PROGRAM, BLOCKS, REPLACE_V2 };
+  root.GymData = { IMG_LIB, DEFAULT_PROGRAM, BLOCKS, REPLACE_V2, MIGRATE_V3 };
   if (typeof module !== 'undefined') module.exports = root.GymData;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -142,12 +142,15 @@
     if (p.items.some(it => it.w == null && findEx(it.exId).mode === 'weight')) h += firstTime;
     if (alt && ses === next) h += `<div class="notice accent">${esc(reason)} Meglio la ${esc(alt.id)} (${esc(alt.name)}).
         <div style="margin-top:8px"><button class="btn small primary" data-act="choose" data-id="${esc(alt.id)}">Passa alla ${esc(alt.id)}</button></div></div>`;
-    h += '<ul class="ex-list">' + p.items.map(it => {
+    const li = it => {
       const e = findEx(it.exId);
       return `<li><img class="thumb" src="${imgSrc(e)}" alt="" loading="lazy">
         <div><div class="name">${esc(e.name)}</div><div class="target">${target(e, it.sets, it.w)}</div>
         ${it.notes.map(n => `<div class="small" style="color:var(--warn)">${esc(n)}</div>`).join('')}</div></li>`;
-    }).join('') + '</ul>';
+    };
+    const req = p.items.filter(it => !it.optional), opts = p.items.filter(it => it.optional);
+    h += '<ul class="ex-list">' + req.map(li).join('') + '</ul>';
+    if (opts.length) h += `<div class="eyebrow" style="margin-top:12px">Se hai tempo</div><ul class="ex-list opt">${opts.map(li).join('')}</ul>`;
     h += `<label class="switch"><span class="small">Cardio intenso nelle prossime 24 ore</span><input type="checkbox" data-act="cardioSoon" ${ui.cardioSoon ? 'checked' : ''}></label>`;
     h += `<button class="btn primary block" data-act="start" data-id="${esc(ses.id)}">Inizia allenamento</button>`;
     h += `<div class="chips" style="margin-top:12px">${S.program.sessions.map(x =>
@@ -184,9 +187,23 @@
     h += `<main class="${c.timer ? 'with-timer' : ''}">`;
     if (c.note) h += `<div class="notice warn">${esc(c.note)}</div>`;
     if (c.items.some(it => it.w == null && findEx(it.exId) && findEx(it.exId).mode === 'weight')) h += firstTime;
-    c.items.forEach((it, i) => {
+    const order = c.items.map((it, i) => i).sort((a, b) => (c.items[a].optional ? 1 : 0) - (c.items[b].optional ? 1 : 0));
+    let optHead = false;
+    order.forEach(i => {
+      const it = c.items[i];
       const e = findEx(it.exId);
       if (!e) return;
+      if (it.optional && !optHead) {
+        optHead = true;
+        h += '<div class="eyebrow" style="margin:20px 0 4px">Se hai tempo</div>';
+      }
+      if (it.optional && !it.on) {
+        h += `<section class="card ex-card"><div class="head">
+          <img class="thumb" src="${imgSrc(e)}" alt="Come si esegue ${esc(e.name)}" data-act="demo" data-ex="${esc(e.id)}">
+          <div class="meta"><h3>${esc(e.name)}</h3><div class="small muted">${target(e, it.sets.length, it.w)}</div></div>
+          <button class="btn small primary" data-act="opton" data-i="${i}">Aggiungi</button></div></section>`;
+        return;
+      }
       const last = L.lastEntry(S, e.id);
       const isTime = e.mode === 'time';
       h += `<section class="card ex-card"><div class="head">
@@ -202,7 +219,8 @@
           <button class="check" data-act="check" data-i="${i}" data-j="${j}" aria-label="Serie fatta">✓</button></div>`;
       });
       h += `</div><div class="row" style="margin-top:6px"><button class="btn ghost small" data-act="addset" data-i="${i}">+ Serie</button>
-        ${it.sets.length > 1 ? `<button class="btn ghost small" style="color:var(--muted)" data-act="delset" data-i="${i}">− Serie</button>` : ''}</div></section>`;
+        ${it.sets.length > 1 ? `<button class="btn ghost small" style="color:var(--muted)" data-act="delset" data-i="${i}">− Serie</button>` : ''}
+        ${it.optional && !it.sets.some(x => x.done) ? `<button class="btn ghost small" style="color:var(--muted);margin-left:auto" data-act="optoff" data-i="${i}">Non lo faccio</button>` : ''}</div></section>`;
     });
     h += `<button class="btn primary block" data-act="finish" style="margin-top:8px">Termina allenamento</button>
       <button class="btn ghost block danger" data-act="cancel" style="margin-top:6px;text-align:center">Annulla allenamento</button>`;
@@ -313,7 +331,7 @@
         const st = S.exState[e.id];
         h += `<div class="edit-ex" role="button" data-act="editex" data-si="${si}" data-ei="${ei}">
           <img class="thumb" src="${imgSrc(e)}" alt="" loading="lazy">
-          <div class="grow"><div style="font-weight:600">${esc(e.name)}</div><div class="small muted">${target(e, e.sets, st && st.w)} · rec. ${fmtSec(e.rest)}</div></div>
+          <div class="grow"><div style="font-weight:600">${esc(e.name)}${e.optional ? ' <span class="badge">se hai tempo</span>' : ''}</div><div class="small muted">${target(e, e.sets, st && st.w)} · rec. ${fmtSec(e.rest)}</div></div>
           <span class="muted">›</span></div>`;
       });
       h += `<button class="btn ghost small" data-act="addex" data-si="${si}">+ Aggiungi esercizio</button></section>`;
@@ -418,6 +436,7 @@
       <label class="field"><span>Carico di lavoro (kg)</span><input inputmode="decimal" id="e-w" value="${st.w == null ? '' : fmt(st.w)}" placeholder="vuoto = da scegliere"></label></div>
       <label class="switch"><span class="small">Esercizio per le gambe (si alleggerisce dopo il cardio)</span><input type="checkbox" id="e-legs" ${e.legs ? 'checked' : ''}></label>
       <label class="switch"><span class="small">Ripetizioni per lato</span><input type="checkbox" id="e-side" ${e.perSide ? 'checked' : ''}></label>
+      <label class="switch"><span class="small">Opzionale: lo faccio solo se ho tempo</span><input type="checkbox" id="e-opt" ${e.optional ? 'checked' : ''}></label>
       <button class="btn primary block" data-act="saveex">Salva</button>
       ${isNew ? '' : `<div class="grid3" style="margin-top:10px"><button class="btn small" data-act="mvex" data-d="-1">↑ Su</button><button class="btn small" data-act="mvex" data-d="1">↓ Giù</button><button class="btn small danger" data-act="delex">Elimina</button></div>`}`);
     sh._ctx = { si, ei, e, isNew, draft };
@@ -521,7 +540,7 @@
           const nextIdx = it.sets.findIndex(x => !x.done);
           let label = nextIdx >= 0 ? `${e.name} · serie ${nextIdx + 1}` : '';
           if (nextIdx < 0) {
-            const nx = S.current.items.slice(+el.dataset.i + 1).find(x => x.sets.some(y => !y.done));
+            const nx = S.current.items.slice(+el.dataset.i + 1).find(x => (!x.optional || x.on) && x.sets.some(y => !y.done));
             label = nx ? 'Poi: ' + findEx(nx.exId).name : 'Ultima serie fatta';
           }
           if (nextIdx >= 0 || label !== 'Ultima serie fatta') S.current.timer = { end: Date.now() + it.rest * 1000, total: it.rest, label: 'Recupero · ' + label };
@@ -538,10 +557,12 @@
       case 'addset': { const it = S.current.items[+el.dataset.i]; const l = it.sets[it.sets.length - 1]; it.sets.push({ w: l ? l.w : it.w, r: l ? l.r : it.max, done: false }); save(); render(); break; }
       case 'delset': { const it = S.current.items[+el.dataset.i]; if (it.sets.length > 1) it.sets.pop(); save(); render(); break; }
       case 'demo': sheetDemo(el.dataset.ex); break;
+      case 'opton': S.current.items[+el.dataset.i].on = true; save(); render(); break;
+      case 'optoff': S.current.items[+el.dataset.i].on = false; save(); render(); break;
       case 'finish': {
         const any = S.current.items.some(it => it.sets.some(x => x.done));
         if (!any && !confirm('Non hai segnato nessuna serie. Salvare comunque?')) break;
-        const pending = S.current.items.reduce((n, it) => n + it.sets.filter(x => !x.done).length, 0);
+        const pending = S.current.items.filter(it => !it.optional || it.on).reduce((n, it) => n + it.sets.filter(x => !x.done).length, 0);
         if (any && pending && !confirm(`Ci sono ${pending} serie non segnate: verranno considerate non fatte. Terminare?`)) break;
         const changes = L.finishWorkout(S, new Date());
         save(); render(); window.scrollTo(0, 0); sheetSummary(changes); break;
@@ -606,7 +627,7 @@
         Object.assign(ctx.e, {
           name, img: ctx.draft.img, kind: v('#e-kind'), mode: v('#e-mode'),
           sets: Math.max(1, Math.round(num(v('#e-sets')) || 3)), min, max, rest: Math.max(0, Math.round(num(v('#e-rest')) || 60)),
-          inc: Math.max(0, num(v('#e-inc')) || 0), legs: sh.querySelector('#e-legs').checked, perSide: sh.querySelector('#e-side').checked
+          inc: Math.max(0, num(v('#e-inc')) || 0), legs: sh.querySelector('#e-legs').checked, perSide: sh.querySelector('#e-side').checked, optional: sh.querySelector('#e-opt').checked
         });
         const w = num(v('#e-w'));
         const st = S.exState[ctx.e.id] || { fails: 0 };
@@ -675,6 +696,26 @@
         if (ses.id === 'B' && ses.name === 'Tirata + stacco') ses.name = 'Tirata + stacco manubri';
       }
       S.v = 2; save();
+    }
+    // Versione 3: macchina al posto dello squat, panca con manubri, glutei, esercizi opzionali
+    if ((S.v || 1) < 3 && !S.current) {
+      const M = D.MIGRATE_V3, copy = o => JSON.parse(JSON.stringify(o));
+      for (const ses of S.program.sessions) {
+        ses.exercises = ses.exercises.map(e => {
+          const n = M.replace[e.id];
+          return n && !L.findExercise(S, n.id) ? copy(n) : e;
+        });
+        for (const [after, n] of (M.insertAfter[ses.id] || [])) {
+          if (L.findExercise(S, n.id)) continue;
+          const k = ses.exercises.findIndex(x => x.id === after);
+          ses.exercises.splice(k >= 0 ? k + 1 : ses.exercises.length, 0, copy(n));
+        }
+        for (const n of (M.append[ses.id] || [])) if (!L.findExercise(S, n.id)) ses.exercises.push(copy(n));
+        const rn = M.rename[ses.id];
+        if (rn && ses.name === rn[0]) ses.name = rn[1];
+      }
+      for (const id of M.makeOptional) { const e = L.findExercise(S, id); if (e) e.optional = true; }
+      S.v = 3; save();
     }
     render(); tick();
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
